@@ -1,0 +1,185 @@
+\documentclass[14pt,a4paper]{extarticle}
+
+\usepackage[margin=2.54cm]{geometry}
+\usepackage[slantfont,boldfont]{xeCJK}
+\usepackage[utf8]{inputenc}
+\usepackage{listings}
+\usepackage{float}
+\usepackage{color}
+\usepackage{xcolor}
+\usepackage{caption}
+\usepackage{courier}
+\usepackage{subfig}
+\usepackage{graphicx}
+\graphicspath{ {./} }
+
+\definecolor{codegreen}{rgb}{0,0.6,0}
+\definecolor{codepurple}{rgb}{0.58,0,0.82}
+\definecolor{backcolour}{rgb}{0.95,0.95,0.92}
+\definecolor{darkgray}{rgb}{0.3,0.3,0.3}
+
+\newcommand{\inlinecode}[1]{\colorbox{backcolour}{\color{darkgray}#1}}
+
+\DeclareCaptionFont{white}{\color{white}}
+\DeclareCaptionFormat{listing}{\colorbox{gray}{\parbox{\textwidth}{#1#2#3}}}
+\captionsetup[lstlisting]{format=listing,labelfont=white,textfont=white}
+\lstset{
+	backgroundcolor=\color{backcolour},
+	commentstyle=\color{codegreen},
+    keywordstyle=\color{violet},
+    stringstyle=\color{codepurple},
+	language=Python,
+	numbers=left,
+	numberstyle=\small\color{lightgray},
+	columns=fullflexible,
+	showstringspaces=false,
+	breaklines=true
+}
+
+\setCJKmainfont{PingFang TC}
+
+\title{Computer Vision\\Homework 4 Report}
+\author{林義聖\\B03902048}
+\date{\today}
+
+\begin{document}
+
+\maketitle
+
+\section*{Introduction}
+
+I use \textit{Python} as my programming language and \textit{Pillow} as my Image Library.
+
+\begin{figure}[H]
+\centering
+\includegraphics[scale=0.5]{lena.bmp}
+\caption{original lena.bmp}
+\label{fig:lena.bmp}
+\end{figure}
+
+\section*{Erosion}
+
+\begin{lstlisting}[caption=Erosion]
+mask_2d = [\
+    (-1,-2),(0,-2),(1,-2),\
+    (-2,-1),(-1,-1),(0,-1),(1,-1),(2,-1),\
+    (-2,0),(-1,0),(0,0),(1,0),(2,0),\
+    (-2,1),(-1,1),(0,1),(1,1),(2,1),\
+    (-1,2),(0,2),(1,2)\
+]
+
+for y in range(height):
+    for x in range(width):
+        if data_seq[y * width + x] == WHITE:
+            for m in mask_2d:
+                p = (x + m[0], y + m[1])
+                if p[0] < 0 or p[0] >= width or p[1] < 0 or p[1] >= height:
+                    break
+                elif data_seq[p[1] * width + p[0]] != WHITE:
+                    break
+            else:
+                out_data[y * width + x] = WHITE
+\end{lstlisting}
+
+\begin{figure}[H]
+\centering
+\includegraphics[scale=0.6]{lena-eroded.bmp}
+\caption{eroded lena.bmp}
+\label{fig:lena-eroded.bmp}
+\end{figure}
+
+\section*{Dilation}
+
+When I am using dilation on the image, I use the same mask defined in previous part.
+
+\begin{lstlisting}[caption=Dilation]
+for y in range(height):
+    for x in range(width):
+        if data_seq[y * width + x] == WHITE:
+            for m in mask_2d:
+                p = (x + m[0], y + m[1])
+                if 0 <= p[0] < width and 0 <= p[1] < height:
+                    out_data[p[1] * width + p[0]] = WHITE
+\end{lstlisting}
+
+\begin{figure}[H]
+\centering
+\includegraphics[scale=0.6]{lena-dilated.bmp}
+\caption{dilated lena.bmp}
+\label{fig:lena-dilated.bmp}
+\end{figure}
+
+\section*{Opening}
+
+For doing \textit{opening} on the image, I use erosion followed by dilation with the same kernel.
+
+\begin{figure}[H]
+\centering
+\includegraphics[scale=0.6]{lena-opening.bmp}
+\caption{lena.bmp after opening}
+\label{fig:lena-opening.bmp}
+\end{figure}
+
+\section*{Closing}
+
+For doing \textit{closing} on the image, I use dilation followed by erosion with the same kernel.
+
+\begin{figure}[H]
+\centering
+\includegraphics[scale=0.6]{lena-closing.bmp}
+\caption{lena.bmp after closing}
+\label{fig:lena-closing.bmp}
+\end{figure}
+
+\section*{Hit-and-Miss}
+
+I draw white points on a black picture to represent the detected upper-right corners on lena.bmp.
+
+\begin{lstlisting}[caption=Hit-and-Miss]
+mask_pos = [\
+    (-1,-1),(0,-1),(1,-1),\
+    (-1,0),(0,0),(1,0),\
+    (-1,1),(0,1),(1,1)]
+
+mask = [\
+    0,-1,-1,\
+    1,1,-1,\
+    0,1,0]
+
+for y in range(height):
+    for x in range(width):
+        if data_seq[y*width+x] == WHITE:
+            for i in range(len(mask_pos)):
+                p = (x + mask_pos[i][0], y + mask_pos[i][1])
+                if 0 <= p[0] < width and 0 <= p[1] < height:
+                    if mask[i] == 1 and data_seq[p[1]*width+p[0]] == WHITE:
+                        continue
+                    elif mask[i] == -1 and data_seq[p[1]*width+p[0]] == BLACK:
+                        continue
+                    elif mask[i] == 0:
+                        continue
+                    else:
+                        break
+            else:
+                draw.point((x,y), fill=255)
+\end{lstlisting}
+
+\begin{figure}[H]
+\centering
+\includegraphics[scale=0.6]{lena-hit.bmp}
+\caption{lena.bmp after hit-and-miss}
+\label{fig:lena-hit.bmp}
+\end{figure}
+
+\section*{How to Use}
+There are 5 programs,
+\begin{enumerate}
+    \item \textit{erosion.py}
+    \item \textit{dilation.py}
+    \item \textit{opening.py}
+    \item \textit{closing.py}
+    \item \textit{hit-and-miss.py}
+\end{enumerate}
+You need to use binarized picture as input and enter commands in this format: "\textit{program [input image name] [output image name]}" to use it. For example, \inlinecode{./erosion.py lena-binarized.bmp output.bmp}.
+
+\end{document}

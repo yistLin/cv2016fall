@@ -1,0 +1,229 @@
+\documentclass[14pt,a4paper]{extarticle}
+
+\usepackage[margin=2.54cm]{geometry}
+\usepackage[slantfont,boldfont]{xeCJK}
+\usepackage{listings}
+\usepackage{float}
+\usepackage{caption}
+\usepackage{lastpage}
+\usepackage{graphicx}
+\graphicspath{ {../images/} }
+
+\usepackage{fancyhdr}
+\pagestyle{fancy}
+\fancyhf{}
+\lhead{\small{\jobname.pdf}}
+\rhead{\small{Computer Vision 2016 Fall}}
+\cfoot{\small{\thepage\ of \pageref{LastPage}}}
+
+\usepackage{color}
+\usepackage{listings}
+\definecolor{codeyellow}{rgb}{0.6,0.4,0.1}
+\definecolor{codeblue}{rgb}{0.1,0.2,0.6}
+\definecolor{darkgray}{rgb}{0.3,0.3,0.3}
+\lstset{
+	language=Python,
+	basicstyle=\footnotesize,
+	keywordstyle=\color{codeblue},
+	commentstyle=\color{darkgray},
+	stringstyle=\color{codeyellow},
+	numbers=left,
+	numberstyle=\footnotesize,
+	stepnumber=1,
+	numbersep=5pt,
+	backgroundcolor=\color{white},
+	showspaces=false,
+	showstringspaces=false,
+	showtabs=false,
+	frame=single,
+	tabsize=2,
+	captionpos=b,
+	breaklines=true,
+	breakatwhitespace=false,
+	escapeinside={\%*}{*)}
+}
+
+\setCJKmainfont{PingFang TC}
+
+\title{Computer Vision\\Homework 6 Report}
+\author{林義聖\\B03902048}
+\date{\today}
+
+\begin{document}
+
+\maketitle
+\thispagestyle{fancy}
+
+\section*{Introduction}
+
+In this homework assignment, we're going to calculate \textit{Yokoi Connectivity Number}.
+
+I use \textit{Python} as my programming language and \textit{Pillow} as my image library. It is a fork of \textit{PIL}, which is the original image library of \textit{Python}. And I use \textit{Pillow} for reading input image, and transfering image data into \textit{List} of \textit{Python}.
+
+\begin{figure}[H]
+\centering
+\includegraphics[scale=0.5]{lena.bmp}
+\caption{original lena.bmp}
+\label{fig:lena.bmp}
+\end{figure}
+
+\section*{Program Structure}
+
+There's only one program in my submission, and I use program parameters to decide which algorithm we want to apply on the input image. All the things done in my program is:
+\begin{enumerate}
+	\item Import required library
+	\item Open input image
+	\item Binarize the image
+	\item Downsample the image
+	\item Calculate Yokoi connectivity number
+	\item Output matrix to text file
+\end{enumerate}
+
+\begin{lstlisting}
+import sys
+from PIL import Image
+
+# Setup system parameters
+...
+
+def binarize(data):
+	...
+
+def downsampling(data, hei, wid):
+	...
+
+def get_pattern(a1, a2, a3):
+	...
+
+def yokoi(data, hei, wid):
+	...
+
+def main():
+	# get input image
+	...
+
+	# get 1D image data
+	data_seq = list(in_img.getdata())
+
+	# binarize the image
+	bin_data = binarize(data_seq)
+
+	# downsampling the image
+	down_data, newhei, newwid = downsampling(bin_data, height, width)
+
+	# yokoi neighborhood operate
+	out_data = yokoi(down_data, newhei, newwid)
+
+	# open output file and save
+	...
+
+if __name__ == '__main__':
+    main()
+\end{lstlisting}
+
+\section*{Binarize}
+
+We need to binarize the input image first. I binarize the image with threshold 127, and for my convenience, I simply binarize the image data to 1 or 0.
+\begin{lstlisting}
+def binarize(data):
+	result = []
+	for p in data:
+		result.append(1 if p > 127 else 0)
+	return result
+\end{lstlisting}
+
+\section*{Downsampling}
+
+After binarizing the image, I downsample the image by choosing the topmost-left point of a $8\times8$ matrix.
+
+\begin{lstlisting}
+def downsampling(data, hei, wid):
+	result = []
+	offset = 8
+	for y in range(0, hei, offset):
+		for x in range(0, wid, offset):
+			result.append(data[y * wid + x])
+return (result, int(hei/offset), int(wid/offset))
+\end{lstlisting}
+
+\begin{figure}[H]
+\centering
+\includegraphics[scale=1]{downsampling.bmp}
+\caption{downsampled lena.bmp}
+\label{fig:downsampling.bmp}
+\end{figure}
+
+\section*{Yokoi Connectivity Number}
+
+To calculate Yokoi connectivity number, I use the following steps:
+\begin{enumerate}
+	\item Expand the data matrix, append topmost, bottommost row and leftmost, rightmost column to it
+	\item For pixels of original data matrix, get the pattern of its neighbors
+	\item Calculate Yokoi connectivity number from patterns
+	\item Keep doing step 2 and 3 to the end
+\end{enumerate}
+
+\begin{lstlisting}
+def get_pattern(a1, a2, a3):
+    if a1 == 1:
+        if a2 == 1 and a3 == 1:
+            return 'r'
+        else:
+            return 'q'
+    else:
+        return 's'
+
+def yokoi(data, hei, wid):
+	expd = [0] * (hei+2) * (wid+2)
+	for y in range(hei):
+		for x in range(wid):
+			expd[(y+1) * (wid+2) + (x+1)] = data[y * wid + x]
+
+	result = [' '] * (hei * wid)
+	f = {'r':0, 'q':0, 's':0}
+	for y in range(1, hei+1):
+		for x in range(1, wid+1):
+			f['r'] = 0
+			f['q'] = 0
+			f['s'] = 0
+			if expd[y * (wid+2) + x] == 1:
+				f[get_pattern(expd[y*(wid+2)+(x+1)],expd[(y-1)*(wid+2)+(x+1)],expd[(y-1)*(wid+2)+x])] += 1
+				f[get_pattern(expd[(y-1)*(wid+2)+x],expd[(y-1)*(wid+2)+(x-1)],expd[y*(wid+2)+(x-1)])] += 1
+				f[get_pattern(expd[y*(wid+2)+(x-1)],expd[(y+1)*(wid+2)+(x-1)],expd[(y+1)*(wid+2)+x])] += 1
+				f[get_pattern(expd[(y+1)*(wid+2)+x],expd[(y+1)*(wid+2)+(x+1)],expd[y*(wid+2)+(x+1)])] += 1
+			if f['r'] == 4:
+				result[(y-1) * wid + (x-1)] = str(5)
+			else:
+				result[(y-1) * wid + (x-1)] = str(f['q'])
+		else:
+			result[(y-1) * wid + (x-1)] = ' '
+	return result
+\end{lstlisting}
+
+\newpage
+
+\section*{Result}
+
+\lstset{
+	language=,
+	basicstyle=\tiny,
+	backgroundcolor=\color{white},
+	numbers=none,
+	showspaces=false,
+	showstringspaces=false,
+	showtabs=false,
+	basewidth={1.1em},
+	frame=single,
+	tabsize=2,
+	captionpos=b,
+	breaklines=true,
+	breakatwhitespace=false,
+	escapeinside={\%*}{*)}
+}
+\lstinputlisting{../yokoi.txt}
+
+\section*{How to Use}
+
+There's only one executable program in my submission, and its name is \textit{yokoi.py}. To run this program, just type this command ''\texttt{./yokoi.py [input image] [output file]}''.
+
+\end{document}

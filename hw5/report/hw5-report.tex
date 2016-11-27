@@ -1,0 +1,245 @@
+\documentclass[14pt,a4paper]{extarticle}
+
+\usepackage[margin=2.54cm]{geometry}
+\usepackage[slantfont,boldfont]{xeCJK}
+\usepackage{listings}
+\usepackage{float}
+\usepackage{caption}
+\usepackage{lastpage}
+\usepackage{graphicx}
+\graphicspath{ {../images/} }
+
+\usepackage{fancyhdr}
+\pagestyle{fancy}
+\fancyhf{}
+\lhead{\small{\jobname.pdf}}
+\rhead{\small{Computer Vision 2016 Fall}}
+\cfoot{\small{\thepage\ of \pageref{LastPage}}}
+
+\usepackage{color}
+\usepackage{listings}
+\definecolor{codeyellow}{rgb}{0.6,0.4,0.1}
+\definecolor{codeblue}{rgb}{0.1,0.2,0.6}
+\definecolor{darkgray}{rgb}{0.3,0.3,0.3}
+\lstset{
+	language=Python,
+	basicstyle=\footnotesize,
+	keywordstyle=\color{codeblue},
+	commentstyle=\color{darkgray},
+	stringstyle=\color{codeyellow},
+	numbers=left,
+	numberstyle=\footnotesize,
+	stepnumber=1,
+	numbersep=5pt,
+	backgroundcolor=\color{white},
+	showspaces=false,
+	showstringspaces=false,
+	showtabs=false,
+	frame=single,
+	tabsize=2,
+	captionpos=b,
+	breaklines=true,
+	breakatwhitespace=false,
+	escapeinside={\%*}{*)}
+}
+
+\setCJKmainfont{PingFang TC}
+
+\title{Computer Vision\\Homework 5 Report}
+\author{林義聖\\B03902048}
+\date{\today}
+
+\begin{document}
+
+\maketitle
+\thispagestyle{fancy}
+
+\section{Introduction}
+
+In this homework assignment, we're going to do \textit{Mathematical Morphology --- Gray Scaled Morphology} and try to implement four algorithm: erosion, dilation, opening, and closing.
+
+I use \textit{Python} as my programming language and \textit{Pillow} as my image library. It is a fork of \textit{PIL}, which is the original image library of \textit{Python}. And I use \textit{Pillow} for reading input image, transfering image data into \textit{List} of \textit{Python}, and saving the processed data as a gray-scaled image.
+
+\begin{figure}[H]
+\centering
+\includegraphics[scale=0.5]{lena.bmp}
+\caption{original lena.bmp}
+\label{fig:lena.bmp}
+\end{figure}
+
+\section{Program Structure}
+
+There's only one program in my submission, and I use program parameters to decide which algorithm we want to apply on the input image. All the things done in my program is:
+\begin{enumerate}
+	\item Import required library
+	\item Define kernel
+	\item Open input image
+	\item Decide which algorithm to apply to and process the image data
+	\item Create a gray-scale image and put the result into image
+	\item Save the output image
+\end{enumerate}
+
+\begin{lstlisting}
+import sys
+from PIL import Image
+
+# get system arguments
+...
+
+# define the 3-5-5-5-3 kernel
+kernel = [\
+    (-1,-2),(0,-2),(1,-2),\
+    (-2,-1),(-1,-1),(0,-1),(1,-1),(2,-1),\
+    (-2,0),(-1,0),(0,0),(1,0),(2,0),\
+    (-2,1),(-1,1),(0,1),(1,1),(2,1),\
+    (-1,2),(0,2),(1,2)\
+]
+
+# the required 4 algorithms are implemented as functions
+...
+
+# main function
+def main():
+    # get input image
+    try:
+        in_img = Image.open(infilename)
+    except Exception as e:
+        print('Error:', str(e))
+        exit(1)
+    ...
+
+    # transfer image data into Python list
+    data_seq = list(in_img.getdata())
+
+    # handle which algorithm we want to apply on image
+    if option == 'erosioin':
+    	...
+
+    # save output image
+    out_img = Image.new('L', in_img.size)
+    out_img.putdata(out_data)
+    out_img.save(outfilename, 'bmp')
+
+if __name__ == '__main__':
+    main()
+\end{lstlisting}
+
+\section{Dilation $f \oplus k$}
+
+The definition of \textit{Gray Scale Dilation} is,
+\[ f \oplus k = T\{U[f] \oplus U[k] \} \]
+When we are implementing this algorithm, we use this definition,
+\[ (f \oplus k)(x) = \texttt{max}\{ f(x-z) + k(z)\ |\ z \in K, x-z \in F \} \]
+Therefore, to do dilation, I use following steps:
+\begin{enumerate}
+	\item Loop through every pixels
+	\item For each pixel, get value of translated pixels and put into a \textit{list}
+	\item Find the maximum value in the \textit{list}
+	\item Assign that value to the current pixel
+\end{enumerate}
+
+\begin{lstlisting}
+def dilation(data, hei, wid):
+    global kernel
+    result = [0] * len(data)
+    for y in range(hei):
+        for x in range(wid):
+            translated = []
+            for x_k, y_k in kernel:
+                x_t = x + x_k
+                y_t = y + y_k
+                if 0 <= x_t < wid and 0 <= y_t < hei:
+                    translated.append(data[y_t * wid + x_t])
+                else:
+                    pass
+            result[y * wid + x] = max(translated)
+    return result
+\end{lstlisting}
+
+\begin{figure}[H]
+\centering
+\includegraphics[scale=0.6]{lena-dilated.bmp}
+\caption{dilated lena.bmp}
+\label{fig:lena-dilated.bmp}
+\end{figure}
+
+\section{Erosion $f \ominus k$}
+
+The definition of \textit{Gray Scale Erosion} is,
+\[ f \ominus k = T\{U[f] \ominus U[k] \} \]
+When we are implementing this algorithm, we use this definition,
+\[ (f \ominus k)(x) = \texttt{min}\{ f(x+z) - k(z) \} \]
+Therefore, to do erosion, I use following steps:
+\begin{enumerate}
+	\item Loop through every pixels
+	\item For each pixel, get value of translated pixels and put into a \textit{list}
+	\item Find the minimum value in the \textit{list}
+	\item Assign that value to the current pixel
+\end{enumerate}
+
+\begin{lstlisting}
+def erosion(data, hei, wid):
+    global kernel
+    result = [0] * len(data)
+    for y in range(hei):
+        for x in range(wid):
+            translated = []
+            for x_k, y_k in kernel:
+                x_t = x + x_k
+                y_t = y + y_k
+                if 0 <= x_t < wid and 0 <= y_t < hei:
+                    translated.append(data[y_t * wid + x_t])
+                else:
+                    pass
+            result[y * wid + x] = min(translated)
+    return result
+\end{lstlisting}
+
+\begin{figure}[H]
+\centering
+\includegraphics[scale=0.6]{lena-eroded.bmp}
+\caption{eroded lena.bmp}
+\label{fig:lena-eroded.bmp}
+\end{figure}
+
+\section{Opening $f \circ k$}
+
+The \textit{opening} on $f$ by $k$ is denoted by $f \circ k$. And it is defined by \textit{dilation} and \textit{erosion}, that is,
+\[ f \circ k = (f \ominus k) \oplus k \]
+Hence, to do \textit{opening}, I just apply \textit{erosion} on image first, and then apply \textit{dilation} on the result of previous step.
+
+\begin{lstlisting}
+def opening(data, hei, wid):
+    return dilation( erosion(data, hei, wid), hei, wid )
+\end{lstlisting}
+
+\begin{figure}[H]
+\centering
+\includegraphics[scale=0.6]{lena-opening.bmp}
+\caption{lena.bmp after opening}
+\label{fig:lena-opening.bmp}
+\end{figure}
+
+\section{Closing $f \bullet k$}
+
+The \textit{closing} on $f$ by $k$ is denoted by $f \bullet k$. And it is defined by \textit{dilation} and \textit{erosion}, that is,
+\[ f \bullet k = (f \oplus k) \ominus k \]
+Hence, to do \textit{closing}, I just apply \textit{dilation} on image first, and then apply \textit{erosion} on the result of previous step.
+
+\begin{lstlisting}
+def closing(data, hei, wid):
+    return erosion( dilation(data, hei, wid), hei, wid )
+\end{lstlisting}
+
+\begin{figure}[H]
+\centering
+\includegraphics[scale=0.6]{lena-closing.bmp}
+\caption{lena.bmp after closing}
+\label{fig:lena-closing.bmp}
+\end{figure}
+
+\section{How to Use}
+
+There's only one executable program in my submission, and its name is \textit{gs-morphology.py}. To run this program, just type this command ''\texttt{./gs-morphology.py [option] [input image] [output image]}''. And the \texttt{[option]} could be: dilation, erosion, opening, closing.
+
+\end{document}
