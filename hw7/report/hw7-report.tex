@@ -7,7 +7,8 @@
 \usepackage{caption}
 \usepackage{lastpage}
 \usepackage{graphicx}
-\graphicspath{ {../images/} }
+\usepackage{amsmath}
+\graphicspath{ {../} }
 
 \usepackage{fancyhdr}
 \pagestyle{fancy}
@@ -45,7 +46,7 @@
 
 \setCJKmainfont{PingFang TC}
 
-\title{Computer Vision\\Homework 6 Report}
+\title{Computer Vision\\Homework 7 Report}
 \author{林義聖\\B03902048}
 \date{\today}
 
@@ -56,9 +57,7 @@
 
 \section*{Introduction}
 
-In this homework assignment, we're going to calculate \textit{Yokoi Connectivity Number}.
-
-I use \textit{Python} as my programming language and \textit{Pillow} as my image library. It is a fork of \textit{PIL}, which is the original image library of \textit{Python}. And I use \textit{Pillow} for reading input image, and transfering image data into \textit{List} of \textit{Python}.
+In this homework assignment, we're going to do \textit{thinning} on image. I use \textit{Python} as my programming language and \textit{Pillow} as my image library. It is a fork of \textit{PIL}, which is the original image library of \textit{Python}. And I use \textit{Pillow} for reading input image, and transfering image data into \textit{List} of \textit{Python}.
 
 \begin{figure}[H]
 \centering
@@ -69,22 +68,27 @@ I use \textit{Python} as my programming language and \textit{Pillow} as my image
 
 \section*{Program Structure}
 
-There's only one program in my submission, and I use program parameters to decide which algorithm we want to apply on the input image. All the things done in my program is:
+There's only one program \textit{thinning.py} in my submission. And its structure is as following:
 \begin{enumerate}
-	\item Import required library
+	\item Import required library (i.g PIL)
 	\item Open input image
 	\item Binarize the image
 	\item Downsample the image
-	\item Calculate Yokoi connectivity number
-	\item Output matrix to text file
+	\item Thin the image
+		\begin{enumerate}
+			\item Mark the border and interior pixels
+			\item Mark deletable border pixels
+			\item Calculate Yokoi connectivity number(YCN) of deletable pixels
+			\item Remove deletable pixels which have $\texttt{YCN} = 1$
+			\item Go back to \texttt{(a)} until no border pixels can be shrinked anymore
+		\end{enumerate}
+	\item Output thinned result to a text file
 \end{enumerate}
 
 \begin{lstlisting}
+#!/usr/local/bin/python3.5
 import sys
 from PIL import Image
-
-# Setup system parameters
-...
 
 def binarize(data):
 	...
@@ -92,118 +96,139 @@ def binarize(data):
 def downsampling(data, hei, wid):
 	...
 
-def get_pattern(a1, a2, a3):
+def expand(data, hei, wid):
 	...
 
-def yokoi(data, hei, wid):
+def markIB(data, hei, wid):
+	...
+
+def mark_deletable(data, hei, wid):
+	...
+
+def h(b, c, d, e):
+	...
+
+def thinning(data, hei, wid):
 	...
 
 def main():
+	# initial setup, handle system parameters
+	...
+
 	# get input image
 	...
 
 	# get 1D image data
-	data_seq = list(in_img.getdata())
+	pixellist = list(img.getdata())
 
 	# binarize the image
-	bin_data = binarize(data_seq)
+	data = binarize(pixellist)
 
 	# downsampling the image
-	down_data, newhei, newwid = downsampling(bin_data, height, width)
+	data, hei, wid = downsampling(data, hei, wid)
 
-	# yokoi neighborhood operate
-	out_data = yokoi(down_data, newhei, newwid)
+	# thinning the image
+	data, hei, wid = thinning(data, hei, wid)
 
-	# open output file and save
+	# output to text file
 	...
 
 if __name__ == '__main__':
-    main()
+	main()
 \end{lstlisting}
 
-\section*{Binarize}
+\section*{Thinning}
 
-We need to binarize the input image first. I binarize the image with threshold 127, and for my convenience, I simply binarize the image data to 1 or 0.
+To do thinning on an image, firstly, I need to mark the interior and border pixels on image.
 \begin{lstlisting}
-def binarize(data):
-	result = []
-	for p in data:
-		result.append(1 if p > 127 else 0)
-	return result
+def markIB(data, hei, wid):
+	ret = [0] * len(data)
+	for y in range(1, hei-1):
+		for x in range(1, wid-1):
+			curr = y * wid + x
+			count = 0
+			if data[curr]:
+				count += data[curr-1] + data[curr+1]
+				count += data[curr-wid-1] + data[curr-wid] + data[curr-wid+1]
+				count += data[curr+wid-1] + data[curr+wid] + data[curr+wid+1]
+				if count < 8:
+					ret[curr] = 1
+				elif count == 8:
+					ret[curr] = 2
+	return ret
 \end{lstlisting}
 
-\section*{Downsampling}
-
-After binarizing the image, I downsample the image by choosing the topmost-left point of a $8\times8$ matrix.
-
+And then from marked image, I find the border pixel that next to some interior pixel and give them a specific label.
 \begin{lstlisting}
-def downsampling(data, hei, wid):
-	result = []
-	offset = 8
-	for y in range(0, hei, offset):
-		for x in range(0, wid, offset):
-			result.append(data[y * wid + x])
-return (result, int(hei/offset), int(wid/offset))
+def mark_deletable(data, hei, wid):
+	for y in range(1, hei-1):
+		for x in range(1, wid-1):
+			curr = y * wid + x
+			if data[curr] == 1:
+				if 2 in [data[curr-1], data[curr+1], data[curr-wid-1], data[curr-wid], data[curr-wid+1], data[curr+wid-1], data[curr+wid], data[curr+wid+1]]:
+					data[curr] = 3
 \end{lstlisting}
 
-\begin{figure}[H]
-\centering
-\includegraphics[scale=1]{downsampling.bmp}
-\caption{downsampled lena.bmp}
-\label{fig:downsampling.bmp}
-\end{figure}
-
-\section*{Yokoi Connectivity Number}
-
-To calculate Yokoi connectivity number, I use the following steps:
-\begin{enumerate}
-	\item Expand the data matrix, append topmost, bottommost row and leftmost, rightmost column to it
-	\item For pixels of original data matrix, get the pattern of its neighbors
-	\item Calculate Yokoi connectivity number from patterns
-	\item Keep doing step 2 and 3 to the end
-\end{enumerate}
+In order to calculate Yokoi connectivity number, I define a function to tell the pattern of the neighbor of a pixel.
+\begin{align*}
+a_1 &= h(x_0, x_1, x_6, x_2)\\
+a_2 &= h(x_0, x_2, x_7, x_3)\\
+a_3 &= h(x_0, x_3, x_8, x_4)\\
+a_4 &= h(x_0, x_4, x_5, x_1)
+\end{align*}
+And the deletable pixel $x$ that can really be shrinked is
+\[ f(a_1, a_2, a_3, a_4, x) = g \text{ if excatly one of } a_1,a_2,a_3,a_4=1 \]
 
 \begin{lstlisting}
-def get_pattern(a1, a2, a3):
-    if a1 == 1:
-        if a2 == 1 and a3 == 1:
-            return 'r'
-        else:
-            return 'q'
-    else:
-        return 's'
+def h(b, c, d, e):
+	return 1 if b == c and (d != b or e != b) else 0
+\end{lstlisting}
 
-def yokoi(data, hei, wid):
-	expd = [0] * (hei+2) * (wid+2)
-	for y in range(hei):
-		for x in range(wid):
-			expd[(y+1) * (wid+2) + (x+1)] = data[y * wid + x]
+And finally, this is the complete steps to do thinning on a given image.
+\begin{lstlisting}
+def thinning(data, hei, wid):
+	# expand the border of image
+	exp_data, exp_hei, exp_wid = expand(data, hei, wid)
 
-	result = [' '] * (hei * wid)
-	f = {'r':0, 'q':0, 's':0}
-	for y in range(1, hei+1):
-		for x in range(1, wid+1):
-			f['r'] = 0
-			f['q'] = 0
-			f['s'] = 0
-			if expd[y * (wid+2) + x] == 1:
-				f[get_pattern(expd[y*(wid+2)+(x+1)],expd[(y-1)*(wid+2)+(x+1)],expd[(y-1)*(wid+2)+x])] += 1
-				f[get_pattern(expd[(y-1)*(wid+2)+x],expd[(y-1)*(wid+2)+(x-1)],expd[y*(wid+2)+(x-1)])] += 1
-				f[get_pattern(expd[y*(wid+2)+(x-1)],expd[(y+1)*(wid+2)+(x-1)],expd[(y+1)*(wid+2)+x])] += 1
-				f[get_pattern(expd[(y+1)*(wid+2)+x],expd[(y+1)*(wid+2)+(x+1)],expd[y*(wid+2)+(x+1)])] += 1
-			if f['r'] == 4:
-				result[(y-1) * wid + (x-1)] = str(5)
-			else:
-				result[(y-1) * wid + (x-1)] = str(f['q'])
+	prev_data = exp_data[:]
+
+	while True:
+		# mark border(1) and interior(2)
+		marked = markIB(exp_data, exp_hei, exp_wid)
+
+		# find deletable border(3)
+		mark_deletable(marked, exp_hei, exp_wid)
+
+		for y in range(1, exp_hei-1):
+			for x in range(1, exp_wid-1):
+				curr = y * exp_wid + x
+				if marked[curr] == 3:
+					# calculate yokoi connectivity number
+					f = 0
+					f += h(exp_data[curr], exp_data[curr+1], exp_data[curr-exp_wid+1], exp_data[curr-exp_wid])
+					f += h(exp_data[curr], exp_data[curr-exp_wid], exp_data[curr-exp_wid-1], exp_data[curr-1])
+					f += h(exp_data[curr], exp_data[curr-1], exp_data[curr+exp_wid-1], exp_data[curr+exp_wid])
+					f += h(exp_data[curr], exp_data[curr+exp_wid], exp_data[curr+exp_wid+1], exp_data[curr+1])
+					if f == 1:
+						marked[curr] = 0
+						exp_data[curr] = 0
+
+		# compare shrinked data to previous data
+		for i in range(len(exp_data)):
+			if exp_data[i] != prev_data[i]:
+				break
 		else:
-			result[(y-1) * wid + (x-1)] = ' '
-	return result
-\end{lstlisting}
+			break
 
-\newpage
+	# backup previous image
+	prev_data = exp_data[:]
+
+	return exp_data, exp_hei, exp_wid
+\end{lstlisting}
 
 \section*{Result}
 
+I use \texttt{*} to represent the white pixels that remain after thinning.
 \lstset{
 	language=,
 	basicstyle=\tiny,
@@ -220,10 +245,17 @@ def yokoi(data, hei, wid):
 	breakatwhitespace=false,
 	escapeinside={\%*}{*)}
 }
-\lstinputlisting{../yokoi.txt}
+\lstinputlisting{../thinned.txt}
+
+\begin{figure}[H]
+\centering
+\includegraphics[scale=4]{thinned-lena.bmp}
+\caption{thinned lena.bmp}
+\label{fig:thinned-lena.bmp}
+\end{figure}
 
 \section*{How to Use}
 
-There's only one executable program in my submission, and its name is \textit{yokoi.py}. To run this program, just type this command ''\texttt{./yokoi.py [input image] [output file]}''.
+There's only one executable program in my submission, and its name is \textit{thinning.py}. To run this program, just type this command ''\texttt{./thinning.py [input image] [output file]}''.
 
 \end{document}
