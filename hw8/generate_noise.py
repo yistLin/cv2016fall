@@ -11,6 +11,7 @@ def additive_white(data, amplitude):
 
 def salt_and_pepper(data, threshold):
     ret = []
+    threshold = threshold / 2
     for pix in data:
         uni = random.uniform(0, 1)
         if uni < threshold:

@@ -120,22 +120,26 @@ def main(noise_filter, infilename):
         out_img = Image.new('L', img.size)
         out_img.putdata(data)
         out_img.save('box-filter3x3-' + infilename, 'bmp')
+        print('box-filter3x3-' + infilename, 'generated!')
         
         data = box_filter5x5(pixellist, hei, wid)
         out_img = Image.new('L', img.size)
         out_img.putdata(data)
         out_img.save('box-filter5x5-' + infilename, 'bmp')
+        print('box-filter5x5-' + infilename, 'generated!')
 
     elif noise_filter == 'median':
         data = median_filter3x3(pixellist, hei, wid)
         out_img = Image.new('L', img.size)
         out_img.putdata(data)
         out_img.save('median-filter3x3-' + infilename, 'bmp')
+        print('median-filter3x3-' + infilename, 'generated!')
 
         data = median_filter5x5(pixellist, hei, wid)
         out_img = Image.new('L', img.size)
         out_img.putdata(data)
         out_img.save('median-filter5x5-' + infilename, 'bmp')
+        print('median-filter5x5-' + infilename, 'generated!')
 
     elif noise_filter == 'opening_closing':
         data = opening(pixellist, hei, wid)
@@ -143,6 +147,7 @@ def main(noise_filter, infilename):
         out_img = Image.new('L', img.size)
         out_img.putdata(data)
         out_img.save('opening-closing-' + infilename, 'bmp')
+        print('opening-closing-' + infilename, 'generated!')
 
     elif noise_filter == 'closing_opening':
         data = closing(pixellist, hei, wid)
@@ -150,6 +155,7 @@ def main(noise_filter, infilename):
         out_img = Image.new('L', img.size)
         out_img.putdata(data)
         out_img.save('closing-opening-' + infilename, 'bmp')
+        print('closing-opening-' + infilename, 'generated!')
 
     else:
         print('Error: no such noise filter')
