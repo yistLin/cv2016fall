@@ -1,0 +1,620 @@
+\documentclass[14pt,a4paper]{extarticle}
+
+\usepackage[margin=2.54cm]{geometry}
+\usepackage[slantfont,boldfont]{xeCJK}
+\usepackage{float}
+\usepackage{caption}
+\usepackage{lastpage}
+\usepackage{graphicx}
+\usepackage{amsmath}
+\usepackage{subfig}
+\graphicspath{ {../} }
+
+\usepackage{fancyhdr}
+\pagestyle{fancy}
+\fancyhf{}
+\lhead{\small{\jobname.pdf}}
+\rhead{\small{Computer Vision 2016 Fall}}
+\cfoot{\small{\thepage\ of \pageref{LastPage}}}
+
+\usepackage{color}
+\usepackage{listings}
+\definecolor{codeyellow}{rgb}{0.6,0.4,0.1}
+\definecolor{codeblue}{rgb}{0.1,0.2,0.6}
+\definecolor{darkgray}{rgb}{0.3,0.3,0.3}
+\lstset{
+	language=Python,
+	basicstyle=\footnotesize,
+	keywordstyle=\color{codeblue},
+	commentstyle=\color{darkgray},
+	stringstyle=\color{codeyellow},
+	numbers=left,
+	numberstyle=\footnotesize,
+	stepnumber=1,
+	numbersep=5pt,
+	backgroundcolor=\color{white},
+	showspaces=false,
+	showstringspaces=false,
+	showtabs=false,
+	frame=single,
+	tabsize=2,
+	captionpos=b,
+	breaklines=true,
+	breakatwhitespace=false,
+	escapeinside={\%*}{*)}
+}
+
+\setCJKmainfont{Kaiti TC}
+\newfontinstance{\optima}{Optima}
+
+\title{{\optima Computer Vision\\Homework 8 Report}}
+\author{林義聖\\B03902048}
+\date{\today}
+
+\begin{document}
+
+\maketitle
+\thispagestyle{fancy}
+
+\section{Introduction}
+
+In this homework assignment, we're going to generate some noisy image and apply filters to remove the noise. I use \textit{Python} as my programming language and \textit{Pillow} as my image library. It is a fork of \textit{PIL}, which is the original image library of \textit{Python}. And I use \textit{Pillow} for reading input image, and transfering image data into \textit{List} of \textit{Python}.
+
+\begin{figure}[H]
+\centering
+\includegraphics[scale=0.5]{lena.bmp}
+\caption{lena.bmp as Benchmark Image}
+\label{fig:lena.bmp}
+\end{figure}
+
+\section{Generate Noisy Image}
+
+\subsection{Additive White Gaussian Noise}
+
+To generate additive white gaussian noise on given image, we use the following function and let $amplitude = 10 \text{ or } 30$,
+\[ I(nim,i,j) = I(im,i,j) + amplitude \cdot N(0,1) \]
+
+\begin{lstlisting}
+def additive_white(data, amplitude):
+	ret = []
+	for pix in data:
+		ret.append(pix + amplitude * random.gauss(0, 1))
+	return ret
+\end{lstlisting}
+
+\begin{figure}[H]
+\centering
+	\subfloat[original picture] {
+    \includegraphics[width=0.45\linewidth]{lena.bmp}
+    \label{fig:lena.bmp}
+	}
+	\hfill
+	\subfloat[Amplitude = 10] {
+    \includegraphics[width=0.45\linewidth]{images/additive-white-10-lena.bmp}
+    \label{fig:additive-white-10-lena.bmp}
+	}
+\caption{Additive white gaussian noise (amplitude = 10)}
+\end{figure}
+
+\begin{figure}[H]
+\centering
+	\subfloat[original picture] {
+    \includegraphics[width=0.45\linewidth]{lena.bmp}
+    \label{fig:lena.bmp}
+	}
+	\hfill
+	\subfloat[Amplitude = 30] {
+    \includegraphics[width=0.45\linewidth]{images/additive-white-30-lena.bmp}
+    \label{fig:additive-white-30-lena.bmp}
+	}
+\caption{Additive white gaussian noise (amplitude = 30)}
+\end{figure}
+
+\subsection{Salt-and-Pepper Noise}
+
+To generate salt-and-pepper noise on given image, we use the following function and let $threshold = 0.1 \text{ or } 0.05$,
+\begin{equation*}
+I(nim,i,j) =
+\left\{
+	\begin{aligned}
+	& 0        & &\text{if uniform(0,1)} < \frac{\text{threshold}}{2}\\
+	& 255      & &\text{if uniform(0,1)} > 1 - \frac{\text{threshold}}{2}\\
+	& I(im,i,j)& &\text{otherwise}
+	\end{aligned}
+\right.
+\end{equation*}
+
+\begin{lstlisting}
+def salt_and_pepper(data, threshold):
+	ret = []
+	threshold = threshold / 2
+	for pix in data:
+		uni = random.uniform(0, 1)
+		if uni < threshold:
+			ret.append(0)
+		elif uni > (1 - threshold):
+			ret.append(255)
+		else:
+			ret.append(pix)
+	return ret
+\end{lstlisting}
+
+\begin{figure}[H]
+\centering
+	\subfloat[original picture] {
+    \includegraphics[width=0.45\linewidth]{lena.bmp}
+    \label{fig:lena.bmp}
+	}
+	\hfill
+	\subfloat[Threshold = 0.05] {
+    \includegraphics[width=0.45\linewidth]{images/salt-and-pepper-0.05-lena.bmp}
+    \label{fig:salt-and-pepper-0.05-lena.bmp}
+	}
+\caption{Salt-and-pepper noise (threshold = 0.05)}
+\end{figure}
+
+\begin{figure}[H]
+\centering
+	\subfloat[original picture] {
+    \includegraphics[width=0.45\linewidth]{lena.bmp}
+    \label{fig:lena.bmp}
+	}
+	\hfill
+	\subfloat[Threshold = 0.1] {
+    \includegraphics[width=0.45\linewidth]{images/salt-and-pepper-0.1-lena.bmp}
+    \label{fig:salt-and-pepper-0.1-lena.bmp}
+	}
+\caption{Salt-and-pepper noise (threshold = 0.1)}
+\end{figure}
+
+\section{Noise Removal}
+
+\subsection{Box Filter}
+
+To use box filter, I just calculate the average of $3 \times 3$ or $5 \times 5$ neighbors of each pixel. And for border pixel, I just ignore the pixels outside the boundaries. The following is the $3 \times 3$ box filter.
+\begin{lstlisting}
+def box_filter3x3(data, hei, wid):
+	ret = []
+	for y in range(hei):
+		for x in range(wid):
+			s = 0
+			t = 0
+			for off_x, off_y in product(range(-1,2), range(-1,2)):
+				kx, ky = x + off_x, y + off_y
+				if 0 <= kx < wid and 0 <= ky < hei:
+					s += data[ky * wid + kx]
+					t += 1
+			ret.append(s / t)
+	return ret
+\end{lstlisting}
+
+\begin{figure}[H]
+\centering
+	\subfloat[additive white (amplitude = 10)] {
+    \includegraphics[width=0.45\linewidth]{images/additive-white-10-lena.bmp}
+    \label{fig:additive-white-10-lena.bmp}
+	}
+	\hfill
+	\subfloat[box filter $3 \times 3$ applied] {
+    \includegraphics[width=0.45\linewidth]{images/box-filter3x3-additive-white-10-lena.bmp}
+    \label{fig:box-filter3x3-additive-white-10-lena.bmp}
+	}
+\caption{Apply box filter $3 \times 3$}
+\end{figure}
+
+\begin{figure}[H]
+\centering
+	\subfloat[additive white (amplitude = 10)] {
+    \includegraphics[width=0.45\linewidth]{images/additive-white-10-lena.bmp}
+    \label{fig:additive-white-10-lena.bmp}
+	}
+	\hfill
+	\subfloat[box filter $5 \times 5$ applied] {
+    \includegraphics[width=0.45\linewidth]{images/box-filter5x5-additive-white-10-lena.bmp}
+    \label{fig:box-filter5x5-additive-white-10-lena.bmp}
+	}
+\caption{Apply box filter $5 \times 5$}
+\end{figure}
+
+\begin{figure}[H]
+\centering
+	\subfloat[additive white (amplitude = 30)] {
+    \includegraphics[width=0.45\linewidth]{images/additive-white-30-lena.bmp}
+    \label{fig:additive-white-30-lena.bmp}
+	}
+	\hfill
+	\subfloat[box filter $3 \times 3$ applied] {
+    \includegraphics[width=0.45\linewidth]{images/box-filter3x3-additive-white-30-lena.bmp}
+    \label{fig:box-filter3x3-additive-white-30-lena.bmp}
+	}
+\caption{Apply box filter $3 \times 3$}
+\end{figure}
+
+\begin{figure}[H]
+\centering
+	\subfloat[additive white (amplitude = 30)] {
+    \includegraphics[width=0.45\linewidth]{images/additive-white-30-lena.bmp}
+    \label{fig:additive-white-30-lena.bmp}
+	}
+	\hfill
+	\subfloat[box filter $5 \times 5$ applied] {
+    \includegraphics[width=0.45\linewidth]{images/box-filter5x5-additive-white-30-lena.bmp}
+    \label{fig:box-filter5x5-additive-white-30-lena.bmp}
+	}
+\caption{Apply box filter $5 \times 5$}
+\end{figure}
+
+\begin{figure}[H]
+\centering
+	\subfloat[salt-and-pepper (threshold = 0.05)] {
+    \includegraphics[width=0.45\linewidth]{images/salt-and-pepper-0.05-lena.bmp}
+    \label{fig:salt-and-pepper-0.05-lena.bmp}
+	}
+	\hfill
+	\subfloat[box filter $3 \times 3$ applied] {
+    \includegraphics[width=0.45\linewidth]{images/box-filter3x3-salt-and-pepper-0.05-lena.bmp}
+    \label{fig:box-filter3x3-salt-and-pepper-0.05-lena.bmp}
+	}
+\caption{Apply box filter $3 \times 3$}
+\end{figure}
+
+\begin{figure}[H]
+\centering
+	\subfloat[salt-and-pepper (threshold = 0.05)] {
+    \includegraphics[width=0.45\linewidth]{images/salt-and-pepper-0.05-lena.bmp}
+    \label{fig:salt-and-pepper-0.05-lena.bmp}
+	}
+	\hfill
+	\subfloat[box filter $5 \times 5$ applied] {
+    \includegraphics[width=0.45\linewidth]{images/box-filter5x5-salt-and-pepper-0.05-lena.bmp}
+    \label{fig:box-filter5x5-salt-and-pepper-0.05-lena.bmp}
+	}
+\caption{Apply box filter $5 \times 5$}
+\end{figure}
+
+\begin{figure}[H]
+\centering
+	\subfloat[salt-and-pepper (threshold = 0.1)] {
+    \includegraphics[width=0.45\linewidth]{images/salt-and-pepper-0.1-lena.bmp}
+    \label{fig:salt-and-pepper-0.1-lena.bmp}
+	}
+	\hfill
+	\subfloat[box filter $3 \times 3$ applied] {
+    \includegraphics[width=0.45\linewidth]{images/box-filter3x3-salt-and-pepper-0.1-lena.bmp}
+    \label{fig:box-filter3x3-salt-and-pepper-0.1-lena.bmp}
+	}
+\caption{Apply box filter $3 \times 3$}
+\end{figure}
+
+\begin{figure}[H]
+\centering
+	\subfloat[salt-and-pepper (threshold = 0.1)] {
+    \includegraphics[width=0.45\linewidth]{images/salt-and-pepper-0.1-lena.bmp}
+    \label{fig:salt-and-pepper-0.1-lena.bmp}
+	}
+	\hfill
+	\subfloat[box filter $5 \times 5$ applied] {
+    \includegraphics[width=0.45\linewidth]{images/box-filter5x5-salt-and-pepper-0.1-lena.bmp}
+    \label{fig:box-filter5x5-salt-and-pepper-0.1-lena.bmp}
+	}
+\caption{Apply box filter $5 \times 5$}
+\end{figure}
+
+\subsection{Median Filter}
+
+To use median filter, I just find the median of $3 \times 3$ or $5 \times 5$ neighbors of each pixel. And for border pixel, I just ignore the pixels outside the boundaries. The following is the $3 \times 3$ median filter.
+\begin{lstlisting}
+def median_filter3x3(data, hei, wid):
+	ret = []
+	for y in range(hei):
+		for x in range(wid):
+			l = []
+			for off_x, off_y in product(range(-1,2), range(-1,2)):
+				kx, ky = x + off_x, y + off_y
+				if 0 <= kx < wid and 0 <= ky < hei:
+					l.append(data[ky * wid + kx])
+			ret.append(median(l))
+	return ret
+\end{lstlisting}
+
+\begin{figure}[H]
+\centering
+	\subfloat[additive white (amplitude = 10)] {
+    \includegraphics[width=0.45\linewidth]{images/additive-white-10-lena.bmp}
+    \label{fig:additive-white-10-lena.bmp}
+	}
+	\hfill
+	\subfloat[median filter $3 \times 3$ applied] {
+    \includegraphics[width=0.45\linewidth]{images/median-filter3x3-additive-white-10-lena.bmp}
+    \label{fig:median-filter3x3-additive-white-10-lena.bmp}
+	}
+\caption{Apply median filter $3 \times 3$}
+\end{figure}
+
+\begin{figure}[H]
+\centering
+	\subfloat[additive white (amplitude = 10)] {
+    \includegraphics[width=0.45\linewidth]{images/additive-white-10-lena.bmp}
+    \label{fig:additive-white-10-lena.bmp}
+	}
+	\hfill
+	\subfloat[median filter $5 \times 5$ applied] {
+    \includegraphics[width=0.45\linewidth]{images/median-filter5x5-additive-white-10-lena.bmp}
+    \label{fig:median-filter5x5-additive-white-10-lena.bmp}
+	}
+\caption{Apply median filter $5 \times 5$}
+\end{figure}
+
+\begin{figure}[H]
+\centering
+	\subfloat[additive white (amplitude = 30)] {
+    \includegraphics[width=0.45\linewidth]{images/additive-white-30-lena.bmp}
+    \label{fig:additive-white-30-lena.bmp}
+	}
+	\hfill
+	\subfloat[median filter $3 \times 3$ applied] {
+    \includegraphics[width=0.45\linewidth]{images/median-filter3x3-additive-white-30-lena.bmp}
+    \label{fig:median-filter3x3-additive-white-30-lena.bmp}
+	}
+\caption{Apply median filter $3 \times 3$}
+\end{figure}
+
+\begin{figure}[H]
+\centering
+	\subfloat[additive white (amplitude = 30)] {
+    \includegraphics[width=0.45\linewidth]{images/additive-white-30-lena.bmp}
+    \label{fig:additive-white-30-lena.bmp}
+	}
+	\hfill
+	\subfloat[median filter $5 \times 5$ applied] {
+    \includegraphics[width=0.45\linewidth]{images/median-filter5x5-additive-white-30-lena.bmp}
+    \label{fig:median-filter5x5-additive-white-30-lena.bmp}
+	}
+\caption{Apply median filter $5 \times 5$}
+\end{figure}
+
+\begin{figure}[H]
+\centering
+	\subfloat[salt-and-pepper (threshold = 0.05)] {
+    \includegraphics[width=0.45\linewidth]{images/salt-and-pepper-0.05-lena.bmp}
+    \label{fig:salt-and-pepper-0.05-lena.bmp}
+	}
+	\hfill
+	\subfloat[median filter $3 \times 3$ applied] {
+    \includegraphics[width=0.45\linewidth]{images/median-filter3x3-salt-and-pepper-0.05-lena.bmp}
+    \label{fig:median-filter3x3-salt-and-pepper-0.05-lena.bmp}
+	}
+\caption{Apply median filter $3 \times 3$}
+\end{figure}
+
+\begin{figure}[H]
+\centering
+	\subfloat[salt-and-pepper (threshold = 0.05)] {
+    \includegraphics[width=0.45\linewidth]{images/salt-and-pepper-0.05-lena.bmp}
+    \label{fig:salt-and-pepper-0.05-lena.bmp}
+	}
+	\hfill
+	\subfloat[median filter $5 \times 5$ applied] {
+    \includegraphics[width=0.45\linewidth]{images/median-filter5x5-salt-and-pepper-0.05-lena.bmp}
+    \label{fig:median-filter5x5-salt-and-pepper-0.05-lena.bmp}
+	}
+\caption{Apply median filter $5 \times 5$}
+\end{figure}
+
+\begin{figure}[H]
+\centering
+	\subfloat[salt-and-pepper (threshold = 0.1)] {
+    \includegraphics[width=0.45\linewidth]{images/salt-and-pepper-0.1-lena.bmp}
+    \label{fig:salt-and-pepper-0.1-lena.bmp}
+	}
+	\hfill
+	\subfloat[median filter $3 \times 3$ applied] {
+    \includegraphics[width=0.45\linewidth]{images/median-filter3x3-salt-and-pepper-0.1-lena.bmp}
+    \label{fig:median-filter3x3-salt-and-pepper-0.1-lena.bmp}
+	}
+\caption{Apply median filter $3 \times 3$}
+\end{figure}
+
+\begin{figure}[H]
+\centering
+	\subfloat[salt-and-pepper (threshold = 0.1)] {
+    \includegraphics[width=0.45\linewidth]{images/salt-and-pepper-0.1-lena.bmp}
+    \label{fig:salt-and-pepper-0.1-lena.bmp}
+	}
+	\hfill
+	\subfloat[median filter $5 \times 5$ applied] {
+    \includegraphics[width=0.45\linewidth]{images/median-filter5x5-salt-and-pepper-0.1-lena.bmp}
+    \label{fig:median-filter5x5-salt-and-pepper-0.1-lena.bmp}
+	}
+\caption{Apply median filter $5 \times 5$}
+\end{figure}
+
+\subsection{Opening-then-Closing}
+
+To doing opening followed by closing, I just apply what I have done in the previous assignment.
+\begin{lstlisting}
+def opening(data, hei, wid):
+	return dilation( erosion(data, hei, wid), hei, wid )
+
+def closing(data, hei, wid):
+	return erosion( dilation(data, hei, wid), hei, wid )
+
+...
+data = opening(pixellist, hei, wid)
+data = closing(data, hei, wid)
+\end{lstlisting}
+
+\begin{figure}[H]
+\centering
+	\subfloat[additive white (amplitude = 10)] {
+    \includegraphics[width=0.45\linewidth]{images/additive-white-10-lena.bmp}
+    \label{fig:additive-white-10-lena.bmp}
+	}
+	\hfill
+	\subfloat[opening-then-closing applied] {
+    \includegraphics[width=0.45\linewidth]{images/opening-closing-additive-white-10-lena.bmp}
+    \label{fig:opening-closing-additive-white-10-lena.bmp}
+	}
+\caption{Apply opening-then-closing}
+\end{figure}
+
+\begin{figure}[H]
+\centering
+	\subfloat[additive white (amplitude = 30)] {
+    \includegraphics[width=0.45\linewidth]{images/additive-white-30-lena.bmp}
+    \label{fig:additive-white-30-lena.bmp}
+	}
+	\hfill
+	\subfloat[opening-then-closing applied] {
+    \includegraphics[width=0.45\linewidth]{images/opening-closing-additive-white-30-lena.bmp}
+    \label{fig:opening-closing-additive-white-30-lena.bmp}
+	}
+\caption{Apply opening-then-closing}
+\end{figure}
+
+\begin{figure}[H]
+\centering
+	\subfloat[salt-and-pepper (threshold = 0.05)] {
+    \includegraphics[width=0.45\linewidth]{images/salt-and-pepper-0.05-lena.bmp}
+    \label{fig:salt-and-pepper-0.05-lena.bmp}
+	}
+	\hfill
+	\subfloat[opening-then-closing applied] {
+    \includegraphics[width=0.45\linewidth]{images/opening-closing-salt-and-pepper-0.05-lena.bmp}
+    \label{fig:opening-closing-salt-and-pepper-0.05-lena.bmp}
+	}
+\caption{Apply opening-then-closing}
+\end{figure}
+
+\begin{figure}[H]
+\centering
+	\subfloat[salt-and-pepper (threshold = 0.1)] {
+    \includegraphics[width=0.45\linewidth]{images/salt-and-pepper-0.1-lena.bmp}
+    \label{fig:salt-and-pepper-0.1-lena.bmp}
+	}
+	\hfill
+	\subfloat[opening-then-closing applied] {
+    \includegraphics[width=0.45\linewidth]{images/opening-closing-salt-and-pepper-0.1-lena.bmp}
+    \label{fig:opening-closing-salt-and-pepper-0.1-lena.bmp}
+	}
+\caption{Apply opening-then-closing}
+\end{figure}
+
+\subsection{Closing-then-Opening}
+
+To doing closing followed by opening, I just apply what I have done in the previous assignment.
+\begin{lstlisting}
+def opening(data, hei, wid):
+	return dilation( erosion(data, hei, wid), hei, wid )
+
+def closing(data, hei, wid):
+	return erosion( dilation(data, hei, wid), hei, wid )
+
+...
+data = closing(pixellist, hei, wid)
+data = opening(data, hei, wid)
+\end{lstlisting}
+
+\begin{figure}[H]
+\centering
+	\subfloat[additive white (amplitude = 10)] {
+    \includegraphics[width=0.45\linewidth]{images/additive-white-10-lena.bmp}
+    \label{fig:additive-white-10-lena.bmp}
+	}
+	\hfill
+	\subfloat[closing-then-opening applied] {
+    \includegraphics[width=0.45\linewidth]{images/closing-opening-additive-white-10-lena.bmp}
+    \label{fig:closing-opening-additive-white-10-lena.bmp}
+	}
+\caption{Apply closing-then-opening}
+\end{figure}
+
+\begin{figure}[H]
+\centering
+	\subfloat[additive white (amplitude = 30)] {
+    \includegraphics[width=0.45\linewidth]{images/additive-white-30-lena.bmp}
+    \label{fig:additive-white-30-lena.bmp}
+	}
+	\hfill
+	\subfloat[closing-then-opening applied] {
+    \includegraphics[width=0.45\linewidth]{images/closing-opening-additive-white-30-lena.bmp}
+    \label{fig:closing-opening-additive-white-30-lena.bmp}
+	}
+\caption{Apply closing-then-opening}
+\end{figure}
+
+\begin{figure}[H]
+\centering
+	\subfloat[salt-and-pepper (threshold = 0.05)] {
+    \includegraphics[width=0.45\linewidth]{images/salt-and-pepper-0.05-lena.bmp}
+    \label{fig:salt-and-pepper-0.05-lena.bmp}
+	}
+	\hfill
+	\subfloat[closing-then-opening applied] {
+    \includegraphics[width=0.45\linewidth]{images/closing-opening-salt-and-pepper-0.05-lena.bmp}
+    \label{fig:closing-opening-salt-and-pepper-0.05-lena.bmp}
+	}
+\caption{Apply closing-then-opening}
+\end{figure}
+
+\begin{figure}[H]
+\centering
+	\subfloat[salt-and-pepper (threshold = 0.1)] {
+    \includegraphics[width=0.45\linewidth]{images/salt-and-pepper-0.1-lena.bmp}
+    \label{fig:salt-and-pepper-0.1-lena.bmp}
+	}
+	\hfill
+	\subfloat[closing-then-opening applied] {
+    \includegraphics[width=0.45\linewidth]{images/closing-opening-salt-and-pepper-0.1-lena.bmp}
+    \label{fig:closing-opening-salt-and-pepper-0.1-lena.bmp}
+	}
+\caption{Apply closing-then-opening}
+\end{figure}
+
+\subsection{Signal-to-ratio}
+
+\begin{lstlisting}
+# ori_pixellist is the data list from original image
+# proc_pixellist is the data list from processed image
+
+# calculate mu, mu_n
+mu = sum(ori_pixellist) / len(ori_pixellist)
+mu_n = sum([ (proc_pixellist[i] - ori_pixellist[i]) for i in range(len(proc_pixellist)) ]) / len(proc_pixellist)
+
+# calculate VS
+vs = sum( [(p - mu)**2 for p in ori_pixellist] ) / len(ori_pixellist)
+vn = sum( [(proc_pixellist[i] - ori_pixellist[i] - mu_n)**2 for i in range(len(proc_pixellist))] ) / len(proc_pixellist)
+
+# calculate SNR
+snr = 10 * log10(vs / vn)
+\end{lstlisting}
+
+And the result of the calculation is,
+\lstset{
+	language=,
+	basicstyle=\footnotesize,
+	backgroundcolor=\color{white},
+	numbers=none,
+	showspaces=false,
+	showstringspaces=false,
+	showtabs=false,
+	frame=single,
+	tabsize=2,
+	captionpos=b,
+	breaklines=true,
+	breakatwhitespace=false,
+	escapeinside={\%*}{*)}
+}
+\lstinputlisting{../SNR.txt}
+
+\section{How to Use}
+
+There are some executable program in my submission, they are
+\begin{itemize}
+	\item \textit{generate\_noise.py}
+	\item \textit{noise\_removal.py}
+	\item \textit{calc\_SNR.py}
+\end{itemize}
+To use \textit{generate\_noise.py}, you need to type ''\texttt{./generate\_noise.py [input image]}''. To use \textit{noise\_removal.py}, you need to type ''\texttt{./noise\_removal.py --filter=[box|median] [input image]}''. To use \textit{calc\_SNR.py}, you need to type \texttt{./calc\_SNR.py [original image] [processed image]}.
+
+\end{document}
