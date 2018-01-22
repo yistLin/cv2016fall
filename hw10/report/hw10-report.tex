@@ -1,0 +1,209 @@
+\documentclass[10pt,a4paper]{article}
+
+\usepackage[margin=1in]{geometry}
+\usepackage[slantfont,boldfont]{xeCJK}
+\usepackage{lastpage}
+\usepackage{float}
+\usepackage{graphicx}
+\usepackage{amsmath}
+\usepackage{subfig}
+\usepackage{multicol}
+\graphicspath{ {../} }
+
+\usepackage{fancyhdr}
+\pagestyle{fancy}
+\fancyhf{}
+\lhead{\small{Computer Vision 2016 Fall}}
+\rhead{\small{\jobname.pdf}}
+\cfoot{\small{\thepage}}
+
+\usepackage{color}
+\usepackage{listings}
+\definecolor{codeyellow}{rgb}{0.6,0.4,0.1}
+\definecolor{codeblue}{rgb}{0.1,0.2,0.6}
+\definecolor{darkgray}{rgb}{0.3,0.3,0.3}
+\lstset{
+	language=Python,
+	basicstyle=\footnotesize,
+	keywordstyle=\color{codeblue},
+	commentstyle=\color{darkgray},
+	stringstyle=\color{codeyellow},
+	numbers=left,
+	numberstyle=\footnotesize,
+	stepnumber=1,
+	numbersep=5pt,
+	backgroundcolor=\color{white},
+	showspaces=false,
+	showstringspaces=false,
+	showtabs=false,
+	xleftmargin=0.2in,
+	xrightmargin=0.1in,
+	frame=single,
+	tabsize=2,
+	captionpos=b,
+	breaklines=true,
+	breakatwhitespace=false,
+	escapeinside={\%*}{*)}
+}
+
+\newenvironment{Figure}
+  {\par\medskip\noindent\minipage{\linewidth}}
+  {\endminipage\par\medskip}
+
+\setCJKmainfont{Kaiti TC}
+\newfontinstance{\optima}{Optima}
+
+\title{{\optima Computer Vision\\Homework 10 Report}}
+\author{林義聖\\B03902048}
+\date{\today}
+
+\begin{document}
+
+\maketitle
+\thispagestyle{fancy}
+
+\begin{multicols}{2}
+
+\section{Introduction}
+
+In this homework assignment, we're going to do \textbf{Zero Crossing Edge Detection}. I use \textit{Python} as my programming language and \textit{Pillow} as my image library. It is a fork of \textit{PIL}, which is the original image library of \textit{Python}. And I use \textit{Pillow} for reading input image, and transfering image data into a \textit{List} of \textit{Python}.
+
+\begin{Figure}
+\centering
+\includegraphics[scale=0.3]{lena.bmp}
+\captionof{figure}{lena.bmp as Benchmark Image}
+\label{fig:lena.bmp}
+\end{Figure}
+
+\section{Zero Crossing Edge Detection}
+
+To do zero crossing edge detection, I apply each kernel on image data. When the kernel reach the boundary of the image, I use a function to flip the inward pixels to the outward.
+
+\begin{lstlisting}
+def flip(p, boundary):
+	if p < 0:
+		return -p -1
+	elif p >= boundary:
+		return 2 * boundary - p - 1
+	else:
+		return p
+\end{lstlisting}
+
+And to apply the kernel on the given image data, I write a function to do convolution with given kernel, data and weight:
+
+\begin{lstlisting}
+def conv_runner(data, hei, wid, kernel, weight):
+	ret = []
+	for y in range(hei):
+		for x in range(wid):
+			s = 0
+			for kx, ky, val in kernel:
+				px = flip(x + kx, wid)
+				py = flip(y + ky, hei)
+				s += data[py * wid + px] * val
+			ret.append(s * weight)
+	return ret
+\end{lstlisting}
+
+\subsection{Laplacian}
+
+All of my kernel in the program is in this form, \texttt{(offset\_x, offset\_y, weight)}. And the following is the kernel and weight of Laplacian zero crossing edge detector.
+
+\begin{lstlisting}
+k = [\
+	(-1,-1, 0),( 0,-1, 1),( 1,-1, 0),\
+	(-1, 0, 1),( 0, 0,-4),( 1, 0, 1),\
+	(-1, 1, 0),( 0, 1, 1),( 1, 1, 0)\
+]
+weight = 1
+\end{lstlisting}
+
+\begin{Figure}
+\centering
+\includegraphics[scale=0.4]{images/laplacian-15-lena.bmp}
+\captionof{figure}{Laplacian with threshold = 15}
+\label{fig:laplacian-15-lena.bmp}
+\end{Figure}
+
+\subsection{Minimum-Variance Laplacian}
+
+The following is the kernel and weight.
+
+\begin{lstlisting}
+k = [\
+	(-1,-1, 2),( 0,-1,-1),( 1,-1, 2),\
+	(-1, 0,-1),( 0, 0,-4),( 1, 0,-1),\
+	(-1, 1, 2),( 0, 1,-1),( 1, 1, 2)\
+]
+weight = 1/3
+\end{lstlisting}
+
+\begin{Figure}
+\centering
+\includegraphics[scale=0.4]{images/minimum-variance-20-lena.bmp}
+\captionof{figure}{Minimum-variance with threshold = 20}
+\label{fig:minimum-variance-20-lena.bmp}
+\end{Figure}
+
+\subsection{Laplacian Of Gaussian}
+
+The following is the kernel and weight.
+
+\begin{lstlisting}
+k = [\
+	(-5,-5, 0),(-4,-5, 0),(-3,-5,  0),(-2,-5, -1),(-1,-5, -1),( 0,-5, -2),( 1,-5, -1),( 2,-5, -1),( 3,-5,  0),( 4,-5, 0),( 5,-5, 0),\
+	(-5,-4, 0),(-4,-4, 0),(-3,-4, -2),(-2,-4, -4),(-1,-4, -8),( 0,-4, -9),( 1,-4, -8),( 2,-4, -4),( 3,-4, -2),( 4,-4, 0),( 5,-4, 0),\
+	(-5,-3, 0),(-4,-3,-2),(-3,-3, -7),(-2,-3,-15),(-1,-3,-22),( 0,-3,-23),( 1,-3,-22),( 2,-3,-15),( 3,-3, -7),( 4,-3,-2),( 5,-3, 0),\
+	(-5,-2,-1),(-4,-2,-4),(-3,-2,-15),(-2,-2,-24),(-1,-2,-14),( 0,-2, -1),( 1,-2,-14),( 2,-2,-24),( 3,-2,-15),( 4,-2,-4),( 5,-2,-1),\
+	(-5,-1,-1),(-4,-1,-8),(-3,-1,-22),(-2,-1,-14),(-1,-1, 52),( 0,-1,103),( 1,-1, 52),( 2,-1,-14),( 3,-1,-22),( 4,-1,-8),( 5,-1,-1),\
+	(-5, 0,-2),(-4, 0,-9),(-3, 0,-23),(-2, 0, -1),(-1, 0,103),( 0, 0,178),( 1, 0,103),( 2, 0, -1),( 3, 0,-23),( 4, 0,-9),( 5, 0,-2),\
+	(-5, 1,-1),(-4, 1,-8),(-3, 1,-22),(-2, 1,-14),(-1, 1, 52),( 0, 1,103),( 1, 1, 52),( 2, 1,-14),( 3, 1,-22),( 4, 1,-8),( 5, 1,-1),\
+	(-5, 2,-1),(-4, 2,-4),(-3, 2,-15),(-2, 2,-24),(-1, 2,-14),( 0, 2, -1),( 1, 2,-14),( 2, 2,-24),( 3, 2,-15),( 4, 2,-4),( 5, 2,-1),\
+	(-5, 3, 0),(-4, 3,-2),(-3, 3, -7),(-2, 3,-15),(-1, 3,-22),( 0, 3,-23),( 1, 3,-22),( 2, 3,-15),( 3, 3, -7),( 4, 3,-2),( 5, 3, 0),\
+	(-5, 4, 0),(-4, 4, 0),(-3, 4, -2),(-2, 4, -4),(-1, 4, -8),( 0, 4, -9),( 1, 4, -8),( 2, 4, -4),( 3, 4, -2),( 4, 4, 0),( 5, 4, 0),\
+	(-5, 5, 0),(-4, 5, 0),(-3, 5,  0),(-2, 5, -1),(-1, 5, -1),( 0, 5, -2),( 1, 5, -1),( 2, 5, -1),( 3, 5,  0),( 4, 5, 0),( 5, 5, 0)\
+]
+weight = 1
+\end{lstlisting}
+
+\begin{Figure}
+\centering
+\includegraphics[scale=0.4]{images/LOG-3000-lena.bmp}
+\captionof{figure}{LOG with threshold = 3000}
+\label{fig:LOG-3000-lena.bmp}
+\end{Figure}
+
+\subsection{Difference of Gaussian}
+
+The following is the core program to generate the kernel.
+
+\begin{lstlisting}
+def gaussian(x, mu, sig):
+	return (1 / np.sqrt(2*np.power(sig,2)*np.pi) ) * np.exp(-np.power(x - mu, 2.) / (2 * np.power(sig, 2.)))
+
+def gauss_2d(x, y, mu_x, mu_y, sig_x, sig_y):
+	return gaussian(x, mu_x, sig_x) * gaussian(y, mu_y, sig_y)
+
+def DOG(x, y):
+	return gauss_2d(x, y, 0, 0, 1, 1) - gauss_2d(x, y, 0, 0, 3, 3)
+
+k = []
+for y in range(-5, 6):
+	for x in range(-5, 6):
+		k.append((x, y, DOG(x, y)))
+\end{lstlisting}
+
+\begin{Figure}
+\centering
+\includegraphics[scale=0.4]{images/DOG-1-lena.bmp}
+\captionof{figure}{DOG with threshold = 1}
+\label{fig:DOG-1-lena.bmp}
+\end{Figure}
+
+\section{How to Use}
+
+There's only one program \texttt{zero\_crossing.py}, to know how to use it, just type command "\texttt{./zero\_crossing.py -h}". And to use it, type command "\texttt{./zero\_crossing.py -k [kernel] -t [threshold] [input image]}".
+
+\end{multicols}
+
+\end{document}

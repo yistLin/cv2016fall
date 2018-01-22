@@ -1,0 +1,341 @@
+\documentclass[14pt,a4paper]{extarticle}
+
+\usepackage[margin=2.54cm]{geometry}
+\usepackage[slantfont,boldfont]{xeCJK}
+\usepackage{float}
+\usepackage{caption}
+\usepackage{lastpage}
+\usepackage{graphicx}
+\usepackage{amsmath}
+\usepackage{subfig}
+\graphicspath{ {../} }
+
+\usepackage{fancyhdr}
+\pagestyle{fancy}
+\fancyhf{}
+\lhead{\small{\jobname.pdf}}
+\rhead{\small{Computer Vision 2016 Fall}}
+\cfoot{\small{\thepage\ of \pageref{LastPage}}}
+
+\usepackage{color}
+\usepackage{listings}
+\definecolor{codeyellow}{rgb}{0.6,0.4,0.1}
+\definecolor{codeblue}{rgb}{0.1,0.2,0.6}
+\definecolor{darkgray}{rgb}{0.3,0.3,0.3}
+\lstset{
+	language=Python,
+	basicstyle=\footnotesize,
+	keywordstyle=\color{codeblue},
+	commentstyle=\color{darkgray},
+	stringstyle=\color{codeyellow},
+	numbers=left,
+	numberstyle=\footnotesize,
+	stepnumber=1,
+	numbersep=5pt,
+	backgroundcolor=\color{white},
+	showspaces=false,
+	showstringspaces=false,
+	showtabs=false,
+	frame=single,
+	tabsize=2,
+	captionpos=b,
+	breaklines=true,
+	breakatwhitespace=false,
+	escapeinside={\%*}{*)}
+}
+
+\setCJKmainfont{Kaiti TC}
+\newfontinstance{\optima}{Optima}
+
+\title{{\optima Computer Vision\\Homework 9 Report}}
+\author{林義聖\\B03902048}
+\date{\today}
+
+\begin{document}
+
+\maketitle
+\thispagestyle{fancy}
+
+\section{Introduction}
+
+In this homework assignment, we're going to do \textbf{General Edge Detection}. I use \textit{Python} as my programming language and \textit{Pillow} as my image library. It is a fork of \textit{PIL}, which is the original image library of \textit{Python}. And I use \textit{Pillow} for reading input image, and transfering image data into a \textit{List} of \textit{Python}.
+
+\begin{figure}[H]
+\centering
+\includegraphics[scale=0.5]{lena.bmp}
+\caption{lena.bmp as Benchmark Image}
+\label{fig:lena.bmp}
+\end{figure}
+
+\section{General Edge Detection}
+
+To do edge detection, I apply each kernel and calculate the gradient magnitude $g$ for each operator. When the kernel reach the boundary of the image, I use a function to flip the inward pixels to the outward.
+
+\begin{lstlisting}
+def flip(p, boundary):
+	if p < 0:
+		return -p -1
+	elif p >= boundary:
+		return 2 * boundary - p - 1
+	else:
+		return p
+\end{lstlisting}
+
+\subsection{Robert's Operator}
+
+Gradient magnitude of this operator is $g = \sqrt{r_1^2 + r_2^2}$.
+
+\begin{lstlisting}
+def roberts_operator(data, hei, wid):
+	r1 = [\
+		( 0, 0,-1),( 1, 0, 0),\
+		( 0, 1, 0),( 1, 1, 1)]
+	r2 = [\
+		( 0, 0, 0),( 1, 0,-1),\
+		( 0, 1, 1),( 1, 1, 0)]
+	ret = []
+	for y in range(hei):
+		for x in range(wid):
+			r1val = 0
+			for rx, ry, val in r1:
+				px = flip(x + rx, wid)
+				py = flip(y + ry, hei)
+				r1val += data[py * wid + px] * val
+			r2val = 0
+			for rx, ry, val in r2:
+				px = flip(x + rx, wid)
+				py = flip(y + ry, hei)
+				r2val += data[py * wid + px] * val
+			val = sqrt(r1val ** 2 + r2val ** 2)
+			ret.append(0 if val >= 12 else 255)
+	return ret
+\end{lstlisting}
+
+\begin{figure}[H]
+\centering
+\includegraphics[scale=0.5]{images/roberts-lena.bmp}
+\caption{Robert's operator with threshold = 12}
+\end{figure}
+
+\subsection{Prewitt's Edge Detector}
+
+The method to calculate gradient magnitude of this operator is the same as previous one, and the kernel of this operator is,
+\begin{lstlisting}
+p1 = [\
+	(-1,-1,-1),( 0,-1,-1),( 1,-1,-1),\
+	(-1, 0, 0),( 0, 0, 0),( 1, 0, 0),\
+	(-1, 1, 1),( 0, 1, 1),( 1, 1, 1)]
+p2 = [\
+	(-1,-1,-1),( 0,-1, 0),( 1,-1, 1),\
+	(-1, 0,-1),( 0, 0, 0),( 1, 0, 1),\
+	(-1, 1,-1),( 0, 1, 0),( 1, 1, 1)]
+\end{lstlisting}
+
+\begin{figure}[H]
+\centering
+\includegraphics[scale=0.5]{images/prewitt-lena.bmp}
+\caption{Prewitt's edge detector with threshold = 24}
+\end{figure}
+
+\subsection{Sobel's Edge Detector}
+
+The method to calculate gradient magnitude of this operator is the same as previous one, and the kernel of this operator is,
+\begin{lstlisting}
+s1 = [\
+	(-1,-1,-1),( 0,-1,-2),( 1,-1,-1),\
+	(-1, 0, 0),( 0, 0, 0),( 1, 0, 0),\
+	(-1, 1, 1),( 0, 1, 2),( 1, 1, 1)]
+s2 = [\
+	(-1,-1,-1),( 0,-1, 0),( 1,-1, 1),\
+	(-1, 0,-2),( 0, 0, 0),( 1, 0, 2),\
+	(-1, 1,-1),( 0, 1, 0),( 1, 1, 1)]
+\end{lstlisting}
+
+\begin{figure}[H]
+\centering
+\includegraphics[scale=0.5]{images/sobel-lena.bmp}
+\caption{Sobel's edge detector with threshold = 38}
+\end{figure}
+
+\subsection{Frei and Chen's Gradient Operator}
+
+The method to calculate gradient magnitude of this operator is the same as previous one, and the kernel of this operator is,
+\begin{lstlisting}
+f1 = [\
+	(-1,-1,-1),( 0,-1,-sqrt(2)),( 1,-1,-1),\
+	(-1, 0, 0),( 0, 0,       0),( 1, 0, 0),\
+	(-1, 1, 1),( 0, 1, sqrt(2)),( 1, 1, 1)]
+f2 = [\
+	(-1,-1,      -1),( 0,-1, 0),( 1,-1,       1),\
+	(-1, 0,-sqrt(2)),( 0, 0, 0),( 1, 0, sqrt(2)),\
+	(-1, 1,      -1),( 0, 1, 0),( 1, 1,       1)]
+\end{lstlisting}
+
+\begin{figure}[H]
+\centering
+\includegraphics[scale=0.5]{images/frei_and_chen-lena.bmp}
+\caption{Frei and Chen's gradient operator with threshold = 30}
+\end{figure}
+
+\subsection{Kirsch's Compass Operator}
+
+Gradient magnitude of this operator is $g = \underset{n,n=0,\dots,7}{\max}k_n$.
+
+\begin{lstlisting}
+def kirsch_operator(data, hei, wid):
+	k = [
+		[\
+		(-1,-1,-3),( 0,-1,-3),( 1,-1, 5),\
+		(-1, 0,-3),( 0, 0, 0),( 1, 0, 5),\
+		(-1, 1,-3),( 0, 1,-3),( 1, 1, 5)],\
+		[\
+		(-1,-1,-3),( 0,-1, 5),( 1,-1, 5),\
+		(-1, 0,-3),( 0, 0, 0),( 1, 0, 5),\
+		(-1, 1,-3),( 0, 1,-3),( 1, 1,-3)],\
+		[\
+		(-1,-1, 5),( 0,-1, 5),( 1,-1, 5),\
+		(-1, 0,-3),( 0, 0, 0),( 1, 0,-3),\
+		(-1, 1,-3),( 0, 1,-3),( 1, 1,-3)],\
+		[\
+		(-1,-1, 5),( 0,-1, 5),( 1,-1,-3),\
+		(-1, 0, 5),( 0, 0, 0),( 1, 0,-3),\
+		(-1, 1,-3),( 0, 1,-3),( 1, 1,-3)],\
+		[\
+		(-1,-1, 5),( 0,-1,-3),( 1,-1,-3),\
+		(-1, 0, 5),( 0, 0, 0),( 1, 0,-3),\
+		(-1, 1, 5),( 0, 1,-3),( 1, 1,-3)],\
+		[\
+		(-1,-1,-3),( 0,-1,-3),( 1,-1,-3),\
+		(-1, 0, 5),( 0, 0, 0),( 1, 0,-3),\
+		(-1, 1, 5),( 0, 1, 5),( 1, 1,-3)],\
+		[\
+		(-1,-1,-3),( 0,-1,-3),( 1,-1,-3),\
+		(-1, 0,-3),( 0, 0, 0),( 1, 0,-3),\
+		(-1, 1, 5),( 0, 1, 5),( 1, 1, 5)],\
+		[\
+		(-1,-1,-3),( 0,-1,-3),( 1,-1,-3),\
+		(-1, 0,-3),( 0, 0, 0),( 1, 0, 5),\
+		(-1, 1,-3),( 0, 1, 5),( 1, 1, 5)]\
+	]
+	ret = []
+	for y in range(hei):
+		for x in range(wid):
+			maxval = -float('Inf')
+			for kernel in k:
+				tmpval = 0
+				for rx, ry, val in kernel:
+					px = flip(x + rx, wid)
+					py = flip(y + ry, hei)
+					tmpval += data[py * wid + px] * val
+				maxval = tmpval if tmpval > maxval else maxval
+			ret.append(0 if maxval >= 135 else 255)
+	return ret
+\end{lstlisting}
+
+\begin{figure}[H]
+\centering
+\includegraphics[scale=0.5]{images/kirsch-lena.bmp}
+\caption{Kirsch's compass operator with threshold = 135}
+\end{figure}
+
+\subsection{Robinson's Compass Operator}
+
+The method to calculate gradient magnitude of this operator is the same as previous one, and the kernel of this operator is,
+\begin{lstlisting}
+k = [
+	[\
+	(-1,-1,-1),( 0,-1, 0),( 1,-1, 1),\
+	(-1, 0,-2),( 0, 0, 0),( 1, 0, 2),\
+	(-1, 1,-1),( 0, 1, 0),( 1, 1, 1)],\
+	[\
+	(-1,-1, 0),( 0,-1, 1),( 1,-1, 2),\
+	(-1, 0,-1),( 0, 0, 0),( 1, 0, 1),\
+	(-1, 1,-2),( 0, 1,-1),( 1, 1, 0)],\
+	[\
+	(-1,-1, 1),( 0,-1, 2),( 1,-1, 1),\
+	(-1, 0, 0),( 0, 0, 0),( 1, 0, 0),\
+	(-1, 1,-1),( 0, 1,-2),( 1, 1,-1)],\
+	[\
+	(-1,-1, 2),( 0,-1, 1),( 1,-1, 0),\
+	(-1, 0, 1),( 0, 0, 0),( 1, 0,-1),\
+	(-1, 1, 0),( 0, 1,-1),( 1, 1,-2)],\
+	[\
+	(-1,-1, 1),( 0,-1, 0),( 1,-1,-1),\
+	(-1, 0, 2),( 0, 0, 0),( 1, 0,-2),\
+	(-1, 1, 1),( 0, 1, 0),( 1, 1,-1)],\
+	[\
+	(-1,-1, 0),( 0,-1,-1),( 1,-1,-2),\
+	(-1, 0, 1),( 0, 0, 0),( 1, 0,-1),\
+	(-1, 1, 2),( 0, 1, 1),( 1, 1, 0)],\
+	[\
+	(-1,-1,-1),( 0,-1,-2),( 1,-1,-1),\
+	(-1, 0, 0),( 0, 0, 0),( 1, 0, 0),\
+	(-1, 1, 1),( 0, 1, 2),( 1, 1, 1)],\
+	[\
+	(-1,-1,-2),( 0,-1,-1),( 1,-1, 0),\
+	(-1, 0,-1),( 0, 0, 0),( 1, 0, 1),\
+	(-1, 1, 0),( 0, 1, 1),( 1, 1, 2)]\
+]
+\end{lstlisting}
+
+\begin{figure}[H]
+\centering
+\includegraphics[scale=0.5]{images/robinson-lena.bmp}
+\caption{Robinson's compass operator with threshold = 43}
+\end{figure}
+
+\subsection{Nevatia-Babu $5\times5$ Operator}
+
+The method to calculate gradient magnitude of this operator is the same as previous one, and the kernel of this operator is,
+\begin{lstlisting}
+k = [
+	[\
+	(-2,-2, 100),(-1,-2, 100),( 0,-2, 100),( 1,-2, 100),( 2,-2, 100),\
+	(-2,-1, 100),(-1,-1, 100),( 0,-1, 100),( 1,-1, 100),( 2,-1, 100),\
+	(-2, 0,   0),(-1, 0,   0),( 0, 0,   0),( 1, 0,   0),( 2, 0,   0),\
+	(-2, 1,-100),(-1, 1,-100),( 0, 1,-100),( 1, 1,-100),( 2, 1,-100),\
+	(-2, 2,-100),(-1, 2,-100),( 0, 2,-100),( 1, 2,-100),( 2, 2,-100)],\
+	[\
+	(-2,-2, 100),(-1,-2, 100),( 0,-2, 100),( 1,-2, 100),( 2,-2, 100),\
+	(-2,-1, 100),(-1,-1, 100),( 0,-1, 100),( 1,-1,  78),( 2,-1, -32),\
+	(-2, 0, 100),(-1, 0,  92),( 0, 0,   0),( 1, 0, -92),( 2, 0,-100),\
+	(-2, 1,  32),(-1, 1, -78),( 0, 1,-100),( 1, 1,-100),( 2, 1,-100),\
+	(-2, 2,-100),(-1, 2,-100),( 0, 2,-100),( 1, 2,-100),( 2, 2,-100)],\
+	[\
+	(-2,-2, 100),(-1,-2, 100),( 0,-2, 100),( 1,-2,  32),( 2,-2,-100),\
+	(-2,-1, 100),(-1,-1, 100),( 0,-1,  92),( 1,-1, -78),( 2,-1,-100),\
+	(-2, 0, 100),(-1, 0, 100),( 0, 0,   0),( 1, 0,-100),( 2, 0,-100),\
+	(-2, 1, 100),(-1, 1,  78),( 0, 1, -92),( 1, 1,-100),( 2, 1,-100),\
+	(-2, 2, 100),(-1, 2, -32),( 0, 2,-100),( 1, 2,-100),( 2, 2,-100)],\
+	[\
+	(-2,-2,-100),(-1,-2,-100),( 0,-2,   0),( 1,-2, 100),( 2,-2, 100),\
+	(-2,-1,-100),(-1,-1,-100),( 0,-1,   0),( 1,-1, 100),( 2,-1, 100),\
+	(-2, 0,-100),(-1, 0,-100),( 0, 0,   0),( 1, 0, 100),( 2, 0, 100),\
+	(-2, 1,-100),(-1, 1,-100),( 0, 1,   0),( 1, 1, 100),( 2, 1, 100),\
+	(-2, 2,-100),(-1, 2,-100),( 0, 2,   0),( 1, 2, 100),( 2, 2, 100)],\
+	[\
+	(-2,-2,-100),(-1,-2,  32),( 0,-2, 100),( 1,-2, 100),( 2,-2, 100),\
+	(-2,-1,-100),(-1,-1, -78),( 0,-1,  92),( 1,-1, 100),( 2,-1, 100),\
+	(-2, 0,-100),(-1, 0,-100),( 0, 0,   0),( 1, 0, 100),( 2, 0, 100),\
+	(-2, 1,-100),(-1, 1,-100),( 0, 1, -92),( 1, 1,  78),( 2, 1, 100),\
+	(-2, 2,-100),(-1, 2,-100),( 0, 2,-100),( 1, 2, -32),( 2, 2, 100)],\
+	[\
+	(-2,-2, 100),(-1,-2, 100),( 0,-2, 100),( 1,-2, 100),( 2,-2, 100),\
+	(-2,-1, -32),(-1,-1,  78),( 0,-1, 100),( 1,-1, 100),( 2,-1, 100),\
+	(-2, 0,-100),(-1, 0, -92),( 0, 0,   0),( 1, 0,  92),( 2, 0, 100),\
+	(-2, 1,-100),(-1, 1,-100),( 0, 1,-100),( 1, 1, -78),( 2, 1,  32),\
+	(-2, 2,-100),(-1, 2,-100),( 0, 2,-100),( 1, 2,-100),( 2, 2,-100)]\
+]
+\end{lstlisting}
+
+\begin{figure}[H]
+\centering
+\includegraphics[scale=0.5]{images/nevatia_babu-lena.bmp}
+\caption{Nevatia-Babu $5x5$ operator with threshold = 12500}
+\end{figure}
+
+\section{How to Use}
+
+There's only one program \texttt{edge\_detection.py}, to use it, just type command "\texttt{./edge\_detection.py --operator=[operator] [input file]}".
+
+\end{document}
